@@ -43,5 +43,5 @@ These operators can be found in the package `ing.openloop.inputadapter.operator`
 Some operators depend on the result of the action from other operators. Therefore, a priority list is defined for 
 the order in which the operators should run. This list can be found in the class `ing.openloop.inputadapter.runcontrol.InputSource`.
 
-A status extension is added to the files that are or have been processed by OpenLoopInputAdapter. Those status are: _.tmp, .busy, .done, _and_ .error_. 
+A status extension is added to the files that are or have been processed by OpenLoopInputAdapter. Those status are: _.tmp, .busy, .done,_ and _.error._ 
 They are defined in the class `ing.openloop.inputadapter.runcontrol.InputAdapterJobExecutor`.
