@@ -1,7 +1,7 @@
 # OpenLoopInputAdapter
 
 OpenLoopInputAdapter is the entry point in our pipeline for afp letters which come from Inspire. 
-Its role is to normalize the TLEs in the afp files we receive according the requirements. To achieve that, the application uses classes called "Operators" 
+Its role is to normalize the TLEs in the afp files we receive according to the requirements. To achieve that, the application uses classes called "Operators" 
 that run through all the Structured Fields in an AFP file and perform transformations. 
 These operators can be found in the package `ing.openloop.inputadapter.operator`. They perform actions such as:
 
@@ -43,5 +43,5 @@ These operators can be found in the package `ing.openloop.inputadapter.operator`
 Some operators depend on the result of the action from other operators. Therefore, a priority list is defined for 
 the order in which the operators should run. This list can be found in the class `ing.openloop.inputadapter.runcontrol.InputSource`.
 
-A status extension is added to the files that are or have been processed by OpenLoopInputAdapter. Those status are: _.tmp, .busy, .done, and .error_. 
+A status extension is added to the files that are or have been processed by OpenLoopInputAdapter. Those status are: _.tmp, .busy, .done, _and_ .error_. 
 They are defined in the class `ing.openloop.inputadapter.runcontrol.InputAdapterJobExecutor`.
