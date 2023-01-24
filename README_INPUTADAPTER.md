@@ -1,7 +1,5 @@
 # OpenLoopInputAdapter
 
-## Purpose
-
 OpenLoopInputAdapter is the entry point in our pipeline for afp letters which come from Inspire.
 It reads afp files that are placed in the folder defined in:
 `ing.openloop.common.configuration.OpenLoopIniProperties.INPUT_AFP_DIR`/`ing.openloop.inputadapter.runcontrol.InputSource.INSPIRE.folderName`, in the application OpenLoopCommon.
