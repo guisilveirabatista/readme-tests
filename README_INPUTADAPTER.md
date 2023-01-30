@@ -1,63 +1,90 @@
-# OpenLoopInputAdapter
+# OpenLoopAdapters
 
-OpenLoopInputAdapter is the entry point in our pipeline for afp letters which come from Inspire.
-It reads afp files that are placed in the folder defined in:
-`ing.openloop.common.configuration.OpenLoopIniProperties.INPUT_AFP_DIR`/`ing.openloop.inputadapter.runcontrol.InputSource.INSPIRE.folderName`, in the application OpenLoopCommon.
+To be able to execute a generic Openloop processing files from different input sources
+need to be adapted to a generic format.
 
-OpenLoopInputAdapter purpose is to normalize the TLEs in the afp files we receive according to the requirements. To achieve that, the
-application uses classes called "Operators" that iterate through all the Structured Fields in an AFP file and perform
-transformations. These operators can be found in the package `ing.openloop.inputadapter.operator`.
+The generic format consists of the following structure:
 
-### Execution
+<blockquote>
 
-Every second, it executes the method InputAdapterJobBuilder.prepareJob(). If there are any afp files in the folder aforementioned, it creates a job for it,
-which is then picked up by InputAdapterJobExecutor.execute().
+HEADER<br>
+&nbsp;BRG (Begin Resource Group)<br>
+&nbsp;&nbsp;BR (Begin Resource, i.e. Font, Codepage, FORMDEF, Overlay, Pagesegment)<br>
+&nbsp;&nbsp;ER (End Resource)
+&nbsp;&nbsp;&nbsp;&nbsp;... more resources
+&nbsp;ERG (End Resource Group)
+<br><br>
+DOCUMENT<br>
+BDT (Begin Document)<br>
+&nbsp; BNG (Begin Named Group = document or mailpack)<br>
+&nbsp;&nbsp; TLE (Tag Logical Element, contains Metadata)<br>
+&nbsp;&nbsp; BPG (Begin Page)<br>
+&nbsp;&nbsp;&nbsp; BPT (Begin Presentation Text)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;PTX (Presentation Text Data)<br>
+&nbsp;&nbsp;&nbsp; EPT (End Presentation Text)<br>
+&nbsp;&nbsp;&nbsp; (IPO Insert Page Overlay)<br>
+&nbsp;&nbsp;EPG (End Page)<br>
+.... more pages for this document<br>
+&nbsp;ENG (End Named Group)<br>
+... more Resource Groups<br>
+EDT (End Document)
 
-A status extension is added to the files that are or have been processed by OpenLoopInputAdapter. Those status are: _
-.tmp, .busy, .done,_ and _.error._ They are defined in the class `ing.openloop.inputadapter.runcontrol.InputAdapterJobExecutor`.
+## Basic Operation
+In order to process correctly the documents different states are maintained:
+- Processorstate - providing the action to be done on the SF (like Drop);
+- Documentate - maintaining metadata of the document (like Name, Adress);<br>
+  -...
 
-If the afp is processed successfully, it is then moved to the folder `ing.openloop.common.configuration.OpenLoopIniProperties.INPUT_AFP_DIR`, with the suffix _.done_.
+On a number of Structured fields based on the state informatie actions are done for the output file. (like writing TLE with certain content)
 
-In case the afp processing fails, the file stays in the same folder and the suffix _.error_ is added.
+The project contains the following adapters:
 
-### Operators
+## IXE
+This adapters perfoms following actions:
+<ul>
+   <li>Drops the NOP fields</li>
+   <li>Adds Named group (by scanning the OMR marks on the pages</li>
+   <li>Shift text on the pages</li>
+   <li>Removes first 10 pages
+</ul> 
 
-- CheckAfpOperator
-    * Operator that calls CheckAfpState to check the AFP.
+## Betalen
+This adapters perfoms following actions:
+<ul>
+<li>reads existing TLE (and removes this from the output)</li>
+<li>creates new standardised TLEs</li>
+<li>de BNG moet geïnterpreteerd worden</li>
+<li> adds Named Groups </li>
+<li> adds leaflet code</li>
+<li> adds for certain streams message pages</li>
+</ul> 
 
-- ReplaceEmptyDomainOperator
-    * If the TLE field DOMAIN is empty, file name is rewritten with prefix "UNK" (unknown).
 
-- CheckTleOperator
-    * Operator that checks if all documents fulfill the `TLERequirements.getStandardTLERequirements()`.
+## Sparen
+This adapter has significant overlap with the betalen adapter and differs on the folling points:
+<ul>
+<li>TLE processing (based on savingtype)</li>
+<li> Peform counting for outputing statistics in the output log.</li>
+</ul> 
 
-- RemoveNopOperator
-    * Operator that discards all NOP.
+## Statements (RST)
+This adapter processes 8 inch (square) RAE statements documents. Those documents come from four streams:
 
-- DefaultPaperEnvelopeOperator
-    - DefaultPaperEnvelopeOperatorBe
-        * Set envelope type and paper type for Belgian entities.
-    - DefaultPaperEnvelopeOperatorNl
-        * Set envelope type and paper type for Dutch entities.
+* RAE572 (8inch) stream: 907 (24h) Envelope: 224818 (10069398) (Buiten)
+*  RAE552 (8inch) stream: 815 (24h) Envelope: 225940 (10069576) (Buiten)
+*  RAE532 (8inch) stream: 814 (24h) Envelope: 225940 (10069577) (NL)
+*  RAE585 (8inch) stream: 902 (24h) Envelope: 224818 (10069573) (NL)
 
-- ColorMappingOperator
-    * Operator that changes the colors in GAD and PTX for Dutch entity letters using the rules of the
-      ColorMappingRepository.
+The processor for this adapter executes following actions:
 
-- AddForceFrontNopOperator
-    * Operator that adds a 'SubDocumentSeparator' NOP before the page (between EPG and BPG)
-      if the PCSP_FORCE_FRONT_IND TLE has been found with the correct value;
-    * It also buffers entire pages (from EPG to BPG) to make this possible.
+* Removes NOP and IMM fields.
+* Reads OMR code from PTX with STRJ font. OMR code is used for locating place to put BNG (5th character)
+* Injects BNG ENG pairs where OMR code contains &amp; character as 5th character.
+* Moves the PTX AMI's 74 points on odd pages and 17 points on even pages.
+* Moves overlays displacement to 1 on all pages.
+* Changes x page size to A4 size.
+* Cleans reprint codes, replacing them with single space character.
+* Cleans KIX code, replacing it with single space character.
+* Adds address TLE's.
 
-- FillSubtypeOperator
-    * Operator that fills the Subtype so that OpenLoopRelocate can read it.
-
-- PlexOperator
-    * Add PLEX TLE field, which determines whether a letter is simplex or duplex.
-
-- NewFileNameOperator
-    * Rewrites the file name with a prefix from the TLE field "DOMAIN".
-
-Some operators depend on the result of the action from other operators. Therefore, a priority list is defined for
-the order in which the operators should run. This list can be found in the
-class `ing.openloop.inputadapter.runcontrol.InputSource`.
+ 
